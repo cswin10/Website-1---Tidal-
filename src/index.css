@@ -64,13 +64,12 @@ body {
   background: linear-gradient(
     135deg,
     var(--bg-deep) 0%,
-    var(--bg-ocean) 25%,
-    #0c1620 50%,
-    var(--bg-ocean) 75%,
+    var(--bg-ocean) 50%,
     var(--bg-deep) 100%
   );
-  background-size: 400% 400%;
-  animation: oceanShift 60s ease-in-out infinite;
+  background-size: 200% 200%;
+  animation: oceanShift 120s linear infinite;
+  will-change: background-position;
 }
 
 .app-background::before {
@@ -391,6 +390,7 @@ body {
 .tide-curve-svg {
   width: 100%;
   height: 200px;
+  will-change: auto;
 }
 
 /* Stat Cards */
@@ -646,6 +646,8 @@ body {
   border-top: 1px solid rgba(0, 245, 212, 0.1);
   padding: 1rem 1.5rem 1.5rem;
   z-index: 50;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .timeline-info {
@@ -675,6 +677,9 @@ body {
   border: 1px solid rgba(0, 245, 212, 0.1);
   cursor: pointer;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .timeline-progress {

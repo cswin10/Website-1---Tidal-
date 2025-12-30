@@ -624,9 +624,9 @@ function TideCurve({
   // Create extended tide events for smooth curve at edges
   const extendedEvents: TideEvent[] = [...tideEvents];
 
-  // Generate smooth curve path
+  // Generate smooth curve path (100 points is enough for smooth curve)
   const points: string[] = [];
-  const numPoints = 200;
+  const numPoints = 100;
 
   for (let i = 0; i <= numPoints; i++) {
     const t = startTime + (timeRange * i) / numPoints;
@@ -714,16 +714,6 @@ function TideCurve({
           fill="url(#areaGradient)"
         />
 
-        {/* Shimmer animation overlay */}
-        <path
-          d={areaPath}
-          fill="url(#areaGradient)"
-          opacity="0.5"
-          style={{
-            animation: 'shimmer 3s ease-in-out infinite'
-          }}
-        />
-
         {/* Main curve line */}
         <path
           d={linePath}
@@ -804,13 +794,6 @@ function TideCurve({
           </g>
         )}
       </svg>
-
-      <style>{`
-        @keyframes shimmer {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.6; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -819,14 +802,14 @@ function TideCurve({
 function TimelineScrubber({
   time,
   onTimeChange,
-  tideEvents,
+  height,
   sunrise,
   sunset,
   isToday = true
 }: {
   time: Date;
   onTimeChange: (time: Date) => void;
-  tideEvents: TideEvent[];
+  height: number;
   isToday?: boolean;
   sunrise?: string;
   sunset?: string;
@@ -847,8 +830,6 @@ function TimelineScrubber({
   const currentProgress = (time.getTime() - startTime) / timeRange;
   const now = new Date();
   const nowProgress = (now.getTime() - startTime) / timeRange;
-
-  const currentHeight = interpolateTideHeight(time, tideEvents);
 
   // Calculate sun positions
   const sunriseProgress = sunrise ? (() => {
@@ -914,7 +895,7 @@ function TimelineScrubber({
     <div className="timeline-scrubber">
       <div className="timeline-info">
         <span className="timeline-time">{formatTime(time)}</span>
-        <span className="timeline-height">{currentHeight.toFixed(2)}m</span>
+        <span className="timeline-height">{height.toFixed(2)}m</span>
       </div>
 
       <div
@@ -1279,7 +1260,7 @@ function App() {
             <TimelineScrubber
               time={scrubberTime}
               onTimeChange={setScrubberTime}
-              tideEvents={selectedDayTides}
+              height={scrubberHeight}
               sunrise={selectedDay?.sunrise}
               sunset={selectedDay?.sunset}
               isToday={isViewingToday}

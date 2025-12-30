@@ -267,52 +267,53 @@ const CORS_PROXIES = [
   (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
 ];
 
+// Simple seeded random for consistent demo data
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed * 9999) * 10000;
+  return x - Math.floor(x);
+}
+
 // Generate realistic demo data based on tidal patterns
 function generateDemoData(): DayData[] {
   const days: DayData[] = [];
   const now = new Date();
+  now.setHours(0, 0, 0, 0);
 
   // Tidal cycle is approximately 12 hours 25 minutes
   // Generate 7 days of data
   for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
     const date = new Date(now);
     date.setDate(date.getDate() + dayOffset);
-    date.setHours(0, 0, 0, 0);
 
     const tides: TideEvent[] = [];
 
     // Base time shifts slightly each day (about 50 min later)
-    const baseOffset = (dayOffset * 50) % (12 * 60 + 25);
+    const baseMinutes = (dayOffset * 50) % 60;
+
+    // Use day offset as seed for consistent heights
+    const seed = dayOffset + 1;
 
     // Morning low tide
     const lowTime1 = new Date(date);
-    lowTime1.setHours(5, 30 + baseOffset % 60, 0, 0);
-    if (lowTime1.getHours() < 24) {
-      tides.push({ time: lowTime1, height: 0.8 + Math.random() * 0.4, type: 'low' });
-    }
+    lowTime1.setHours(5, 30 + baseMinutes, 0, 0);
+    tides.push({ time: lowTime1, height: 0.8 + seededRandom(seed * 1) * 0.4, type: 'low' });
 
     // Late morning high tide
     const highTime1 = new Date(date);
-    highTime1.setHours(11, 45 + baseOffset % 60, 0, 0);
-    if (highTime1.getHours() < 24) {
-      tides.push({ time: highTime1, height: 3.8 + Math.random() * 0.6, type: 'high' });
-    }
+    highTime1.setHours(11, 45 + baseMinutes, 0, 0);
+    tides.push({ time: highTime1, height: 3.8 + seededRandom(seed * 2) * 0.6, type: 'high' });
 
     // Evening low tide
     const lowTime2 = new Date(date);
-    lowTime2.setHours(17, 55 + baseOffset % 60, 0, 0);
-    if (lowTime2.getHours() < 24) {
-      tides.push({ time: lowTime2, height: 0.9 + Math.random() * 0.4, type: 'low' });
-    }
+    lowTime2.setHours(17, 55 + baseMinutes, 0, 0);
+    tides.push({ time: lowTime2, height: 0.9 + seededRandom(seed * 3) * 0.4, type: 'low' });
 
-    // Night high tide (may roll into next day)
+    // Night high tide
     const highTime2 = new Date(date);
-    highTime2.setHours(23, 50 + baseOffset % 60, 0, 0);
-    if (highTime2.getHours() < 24) {
-      tides.push({ time: highTime2, height: 3.6 + Math.random() * 0.6, type: 'high' });
-    }
+    highTime2.setHours(23, 50, 0, 0);
+    tides.push({ time: highTime2, height: 3.6 + seededRandom(seed * 4) * 0.6, type: 'high' });
 
-    // Sort and filter tides for this day
+    // Sort tides by time
     tides.sort((a, b) => a.time.getTime() - b.time.getTime());
 
     days.push({
@@ -571,10 +572,12 @@ function MoonPhaseDisplay({ date }: { date: Date }) {
 // Tide Curve SVG Component
 function TideCurve({
   tideEvents,
-  scrubberTime
+  scrubberTime,
+  isToday = true
 }: {
   tideEvents: TideEvent[];
   scrubberTime: Date;
+  isToday?: boolean;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 200 });
@@ -758,8 +761,8 @@ function TideCurve({
           );
         })}
 
-        {/* Current time marker */}
-        {nowMs >= startTime && nowMs <= endTime && (
+        {/* Current time marker - only show on today */}
+        {isToday && nowMs >= startTime && nowMs <= endTime && (
           <g>
             <line
               x1={currentTimeX}
@@ -776,13 +779,12 @@ function TideCurve({
               r="8"
               fill="#ffffff"
               filter="url(#glow)"
-              style={{ animation: 'pulse 2s ease-in-out infinite' }}
             />
           </g>
         )}
 
         {/* Scrubber marker */}
-        {scrubberMs !== nowMs && scrubberMs >= startTime && scrubberMs <= endTime && (
+        {scrubberMs >= startTime && scrubberMs <= endTime && (
           <g>
             <line
               x1={scrubberX}
@@ -819,11 +821,13 @@ function TimelineScrubber({
   onTimeChange,
   tideEvents,
   sunrise,
-  sunset
+  sunset,
+  isToday = true
 }: {
   time: Date;
   onTimeChange: (time: Date) => void;
   tideEvents: TideEvent[];
+  isToday?: boolean;
   sunrise?: string;
   sunset?: string;
 }) {
@@ -959,8 +963,8 @@ function TimelineScrubber({
           </div>
         )}
 
-        {/* Current time marker (glowing) */}
-        {nowProgress >= 0 && nowProgress <= 1 && (
+        {/* Current time marker (glowing) - only show on today */}
+        {isToday && nowProgress >= 0 && nowProgress <= 1 && (
           <div
             className="timeline-current-marker"
             style={{ left: `${nowProgress * 100}%` }}
@@ -980,10 +984,12 @@ function TimelineScrubber({
 // Forecast Card Component
 function ForecastCard({
   day,
-  isToday
+  isSelected,
+  onClick
 }: {
   day: DayData;
-  isToday: boolean;
+  isSelected: boolean;
+  onClick: () => void;
 }) {
   const moon = getMoonPhase(day.date);
   const isWaxing = moon.age < 14.765;
@@ -997,7 +1003,11 @@ function ForecastCard({
   };
 
   return (
-    <div className={`forecast-card ${isToday ? 'today' : ''}`}>
+    <div
+      className={`forecast-card ${isSelected ? 'selected' : ''}`}
+      onClick={onClick}
+      style={{ cursor: 'pointer' }}
+    >
       <div className="forecast-header">
         <div>
           <div className="forecast-day">{getDayName(day.date)}</div>
@@ -1075,6 +1085,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scrubberTime, setScrubberTime] = useState(new Date());
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
 
   // Save location to localStorage
   useEffect(() => {
@@ -1085,6 +1096,7 @@ function App() {
   const loadTideData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setSelectedDayIndex(0);
 
     try {
       const data = await fetchTideData(location.slug);
@@ -1100,43 +1112,50 @@ function App() {
     loadTideData();
   }, [loadTideData]);
 
-  // Update scrubber time to current time periodically
+  // Update scrubber time when selected day changes
   useEffect(() => {
-    const interval = setInterval(() => {
-      setScrubberTime(new Date());
-    }, 60000); // Update every minute
+    if (tideData.length > 0 && selectedDayIndex < tideData.length) {
+      const selectedDate = tideData[selectedDayIndex].date;
+      const now = new Date();
 
-    return () => clearInterval(interval);
-  }, []);
+      // If it's today, use current time; otherwise use noon of that day
+      if (selectedDate.toDateString() === now.toDateString()) {
+        setScrubberTime(now);
+      } else {
+        const noon = new Date(selectedDate);
+        noon.setHours(12, 0, 0, 0);
+        setScrubberTime(noon);
+      }
+    }
+  }, [selectedDayIndex, tideData]);
 
-  // Get today's data
+  // Get selected day's data
   const today = new Date();
-  const todayData = tideData.find(d =>
-    d.date.toDateString() === today.toDateString()
-  );
+  const selectedDay = tideData[selectedDayIndex];
+  const isViewingToday = selectedDay?.date.toDateString() === today.toDateString();
 
   // All tide events (for interpolation across days)
   const allTideEvents = useMemo(() => {
     return tideData.flatMap(d => d.tides).sort((a, b) => a.time.getTime() - b.time.getTime());
   }, [tideData]);
 
-  // Today's tide events
-  const todayTides = todayData?.tides || [];
+  // Selected day's tide events
+  const selectedDayTides = selectedDay?.tides || [];
 
-  // Tide state
-  const tideState = getTideState(scrubberTime, allTideEvents);
+  // Tide state (based on real current time for today only)
+  const tideState = getTideState(new Date(), allTideEvents);
 
-  // Next tides
-  const nextHigh = getNextTide(scrubberTime, allTideEvents, 'high');
-  const nextLow = getNextTide(scrubberTime, allTideEvents, 'low');
+  // Next tides from current time
+  const nextHigh = getNextTide(new Date(), allTideEvents, 'high');
+  const nextLow = getNextTide(new Date(), allTideEvents, 'low');
 
-  // Current height
-  const currentHeight = interpolateTideHeight(scrubberTime, allTideEvents);
+  // Height at scrubber position
+  const scrubberHeight = interpolateTideHeight(scrubberTime, allTideEvents);
 
-  // Today's range
-  const todayHeights = todayTides.map(t => t.height);
-  const todayRange = todayHeights.length > 0
-    ? { min: Math.min(...todayHeights), max: Math.max(...todayHeights) }
+  // Selected day's range
+  const selectedDayHeights = selectedDayTides.map(t => t.height);
+  const selectedDayRange = selectedDayHeights.length > 0
+    ? { min: Math.min(...selectedDayHeights), max: Math.max(...selectedDayHeights) }
     : { min: 0, max: 0 };
 
   return (
@@ -1161,7 +1180,7 @@ function App() {
             )}
           </div>
 
-          <MoonPhaseDisplay date={today} />
+          <MoonPhaseDisplay date={selectedDay?.date || today} />
         </header>
 
         {loading ? (
@@ -1173,12 +1192,15 @@ function App() {
             {/* Tide Curve */}
             <div className="tide-curve-container">
               <div className="tide-curve-header">
-                <span className="tide-curve-title">Today's Tide</span>
-                <span className="tide-curve-date">{formatDate(today)}</span>
+                <span className="tide-curve-title">
+                  {isViewingToday ? "Today's Tide" : getDayName(selectedDay?.date || today)}
+                </span>
+                <span className="tide-curve-date">{formatDate(selectedDay?.date || today)}</span>
               </div>
               <TideCurve
-                tideEvents={todayTides}
+                tideEvents={selectedDayTides}
                 scrubberTime={scrubberTime}
+                isToday={isViewingToday}
               />
             </div>
 
@@ -1209,23 +1231,25 @@ function App() {
               </div>
 
               <div className="stat-card">
-                <div className="stat-label">Current Height</div>
-                <div className="stat-value">{currentHeight.toFixed(2)}m</div>
+                <div className="stat-label">{isViewingToday ? 'Current Height' : 'Height at Time'}</div>
+                <div className="stat-value">{scrubberHeight.toFixed(2)}m</div>
               </div>
 
               <div className="stat-card">
-                <div className="stat-label">Today's Range</div>
+                <div className="stat-label">{isViewingToday ? "Today's Range" : 'Day Range'}</div>
                 <div className="stat-value">
-                  {todayRange.min.toFixed(1)} — {todayRange.max.toFixed(1)}m
+                  {selectedDayRange.min.toFixed(1)} — {selectedDayRange.max.toFixed(1)}m
                 </div>
               </div>
             </div>
 
-            {/* Today's Tides */}
+            {/* Selected Day's Tides */}
             <section className="todays-tides">
-              <h2 className="section-title">Today's Tides</h2>
+              <h2 className="section-title">
+                {isViewingToday ? "Today's Tides" : `${getDayName(selectedDay?.date || today)}'s Tides`}
+              </h2>
               <div className="tide-list">
-                {todayTides.map((tide, i) => (
+                {selectedDayTides.map((tide, i) => (
                   <div key={i} className="tide-item">
                     <div className={`tide-type-indicator ${tide.type}`} />
                     <span className="tide-time">{formatTime(tide.time)}</span>
@@ -1244,7 +1268,8 @@ function App() {
                   <ForecastCard
                     key={i}
                     day={day}
-                    isToday={day.date.toDateString() === today.toDateString()}
+                    isSelected={i === selectedDayIndex}
+                    onClick={() => setSelectedDayIndex(i)}
                   />
                 ))}
               </div>
@@ -1254,9 +1279,10 @@ function App() {
             <TimelineScrubber
               time={scrubberTime}
               onTimeChange={setScrubberTime}
-              tideEvents={allTideEvents}
-              sunrise={todayData?.sunrise}
-              sunset={todayData?.sunset}
+              tideEvents={selectedDayTides}
+              sunrise={selectedDay?.sunrise}
+              sunset={selectedDay?.sunset}
+              isToday={isViewingToday}
             />
           </>
         )}

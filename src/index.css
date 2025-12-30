@@ -548,9 +548,10 @@ body {
   box-shadow: 0 8px 30px rgba(0, 245, 212, 0.1);
 }
 
-.forecast-card.today {
-  border-color: rgba(0, 245, 212, 0.3);
-  box-shadow: 0 0 20px rgba(0, 245, 212, 0.15);
+.forecast-card.selected {
+  border-color: rgba(0, 245, 212, 0.4);
+  box-shadow: 0 0 25px rgba(0, 245, 212, 0.25);
+  transform: translateY(-2px);
 }
 
 .forecast-header {

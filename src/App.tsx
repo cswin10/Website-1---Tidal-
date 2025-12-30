@@ -819,14 +819,14 @@ function TideCurve({
 function TimelineScrubber({
   time,
   onTimeChange,
-  tideEvents,
+  height,
   sunrise,
   sunset,
   isToday = true
 }: {
   time: Date;
   onTimeChange: (time: Date) => void;
-  tideEvents: TideEvent[];
+  height: number;
   isToday?: boolean;
   sunrise?: string;
   sunset?: string;
@@ -847,8 +847,6 @@ function TimelineScrubber({
   const currentProgress = (time.getTime() - startTime) / timeRange;
   const now = new Date();
   const nowProgress = (now.getTime() - startTime) / timeRange;
-
-  const currentHeight = interpolateTideHeight(time, tideEvents);
 
   // Calculate sun positions
   const sunriseProgress = sunrise ? (() => {
@@ -914,7 +912,7 @@ function TimelineScrubber({
     <div className="timeline-scrubber">
       <div className="timeline-info">
         <span className="timeline-time">{formatTime(time)}</span>
-        <span className="timeline-height">{currentHeight.toFixed(2)}m</span>
+        <span className="timeline-height">{height.toFixed(2)}m</span>
       </div>
 
       <div
@@ -1279,7 +1277,7 @@ function App() {
             <TimelineScrubber
               time={scrubberTime}
               onTimeChange={setScrubberTime}
-              tideEvents={selectedDayTides}
+              height={scrubberHeight}
               sunrise={selectedDay?.sunrise}
               sunset={selectedDay?.sunset}
               isToday={isViewingToday}

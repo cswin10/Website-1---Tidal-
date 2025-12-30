@@ -624,9 +624,9 @@ function TideCurve({
   // Create extended tide events for smooth curve at edges
   const extendedEvents: TideEvent[] = [...tideEvents];
 
-  // Generate smooth curve path
+  // Generate smooth curve path (100 points is enough for smooth curve)
   const points: string[] = [];
-  const numPoints = 200;
+  const numPoints = 100;
 
   for (let i = 0; i <= numPoints; i++) {
     const t = startTime + (timeRange * i) / numPoints;
@@ -714,16 +714,6 @@ function TideCurve({
           fill="url(#areaGradient)"
         />
 
-        {/* Shimmer animation overlay */}
-        <path
-          d={areaPath}
-          fill="url(#areaGradient)"
-          opacity="0.5"
-          style={{
-            animation: 'shimmer 3s ease-in-out infinite'
-          }}
-        />
-
         {/* Main curve line */}
         <path
           d={linePath}
@@ -804,13 +794,6 @@ function TideCurve({
           </g>
         )}
       </svg>
-
-      <style>{`
-        @keyframes shimmer {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.6; }
-        }
-      `}</style>
     </div>
   );
 }
